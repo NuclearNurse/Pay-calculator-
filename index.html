@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Take-Home Pay Calculator (2025) — Web v1.2</title>
+<style>
+:root{--pad:12px;--gap:10px;--bg:#0e1117;--fg:#e6e6e6;--muted:#9aa0a6;--card:#161b22;--accent:#4c8bf5}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--fg)}
+header{padding:var(--pad) calc(var(--pad)*2);background:#111827;position:sticky;top:0;z-index:1;border-bottom:1px solid #222}
+h1{margin:0;font-size:18px}main{padding:calc(var(--pad)*2);max-width:1100px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap)}.card{background:var(--card);border:1px solid #222;border-radius:10px;padding:var(--pad)}
+.inputs{grid-column:span 12}@media(min-width:900px){.inputs{grid-column:span 6}.results{grid-column:span 6}}
+label{display:block;font-size:13px;margin-bottom:4px;color:var(--muted)}input,select{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0b0f16;color:var(--fg)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}.muted{color:var(--muted);font-size:12px}
+.title{font-weight:600;margin-bottom:8px}.section{margin-bottom:14px}.kicker{font-size:12px;color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px dashed #2a2a2a}
+th{color:var(--muted)}.highlight{font-size:24px;font-weight:700}.btnrow{display:flex;gap:10px;flex-wrap:wrap}
+button{background:var(--accent);border:none;color:#fff;padding:10px 12px;border-radius:8px;cursor:pointer}
+.inline{display:inline-block;margin-left:6px;font-size:12px;color:var(--muted)}.pill{background:#0b1530;color:#aecdff;border:1px solid #233b77;padding:4px 8px;border-radius:999px;font-size:12px}
+a{color:#9ec1ff}.profileStatus{margin-top:6px}
+</style></head>
+<body>
+<header>
+  <h1>Take-Home Pay Calculator (2025) — Web v1.2</h1>
+  <div class="kicker">Client-side only. Profiles auto-load on open.</div>
+</header>
+<main class="grid">
+  <section class="card inputs">
+    <div class="title">Inputs</div>
+
+    <div class="section row">
+      <div><label>Pay Type</label>
+        <select id="payType"><option>Hourly</option><option>Salary</option></select>
+      </div>
+      <div><label>Filing Status</label>
+        <select id="filingStatus">
+          <option>Single</option><option>Married Filing Jointly</option><option>Head of Household</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section row" id="hourlyFields">
+      <div><label>Hourly Rate ($)</label><input type="number" id="hourlyRate" min="0" step="0.01" value="45"/></div>
+      <div><label>Hours / Week</label><input type="number" id="hoursPerWeek" min="0" step="0.1" value="40"/></div>
+    </div>
+
+    <div class="section row" id="commonFields">
+      <div><label>Weeks / Year</label><input type="number" id="weeksPerYear" min="1" max="52" step="1" value="52"/></div>
+      <div><label>Annual Salary ($)</label><input type="number" id="annualSalary" min="0" step="1" value="140000"/><div class="inline muted">Used only when Pay Type = Salary</div></div>
+    </div>
+
+    <div class="section">
+      <div class="row">
+        <div>
+          <label>Location Profile</label>
+          <select id="locationProfile"></select>
+          <div class="profileStatus muted" id="profileStatus">Profiles loaded: 0</div>
+        </div>
+        <div><label>State Rate (override)</label><input type="number" id="stateRate" min="0" step="0.0001" placeholder="e.g. 0.045"/></div>
+      </div>
+      <div class="row">
+        <div><label>City/Muni Rate (override)</label><input type="number" id="cityRate" min="0" step="0.0001" placeholder="e.g. 0.024"/></div>
+        <div><label>School/Local Rate (override)</label><input type="number" id="schoolRate" min="0" step="0.0001" placeholder="e.g. 0.01"/></div>
+      </div>
+      <div class="muted">Tip: leave overrides blank to use the profile values.</div>
+    </div>
+
+    <div class="section">
+      <div class="row">
+        <div><label>401(k) Mode</label><select id="kMode"><option>Percent</option><option>$/yr</option></select></div>
+        <div><label>401(k) Traditional (pre-tax)</label><input type="number" id="kTrad" min="0" step="0.0001" value="0.05"/></div>
+      </div>
+      <div class="row">
+        <div><label>401(k) Roth (post-tax)</label><input type="number" id="kRoth" min="0" step="0.0001" value="0.00"/></div>
+        <div><label>HSA (annual pre-tax)</label><input type="number" id="hsa" min="0" step="1" value="0"/></div>
+      </div>
+      <div class="row">
+        <div><label>FSA Healthcare (annual pre-tax)</label><input type="number" id="fsaHealth" min="0" step="1" value="0"/></div>
+        <div><label>FSA Dependent Care (annual pre-tax)</label><input type="number" id="fsaDep" min="0" step="1" value="0"/></div>
+      </div>
+      <div class="row">
+        <div><label>Health Premiums (annual pre-tax)</label><input type="number" id="healthAnnual" min="0" step="1" value="0"/></div>
+        <div><label>Other Pre-tax (annual)</label><input type="number" id="otherPretax" min="0" step="1" value="0"/></div>
+      </div>
+      <div class="row">
+        <div><label>After-tax Deductions (annual)</label><input type="number" id="afterTax" min="0" step="1" value="0"/></div>
+        <div><label>VA Disability (monthly, non-taxable add)</label><input type="number" id="vaMonthly" min="0" step="1" value="0"/></div>
+      </div>
+    </div>
+
+    <div class="btnrow">
+      <button id="resetBtn" type="button">Reset</button>
+      <button id="saveBtn" type="button">Save Inputs</button>
+    </div>
+    <div class="muted">Your inputs are saved locally in your browser.</div>
+  </section>
+
+  <section class="card results">
+    <div class="title">Results</div>
+    <div class="section"><div class="pill">All values are estimates. 2025 brackets & standard deductions.</div></div>
+    <table><tbody>
+      <tr><th>Net Take-Home (Annual)</th><td class="num highlight" id="netAnnual">$0</td></tr>
+      <tr><th>Net Take-Home (Monthly)</th><td class="num" id="netMonthly">$0</td></tr>
+      <tr><th>Net Take-Home (Biweekly)</th><td class="num" id="netBiweekly">$0</td></tr>
+      <tr><th>Net Take-Home (Weekly)</th><td class="num" id="netWeekly">$0</td></tr>
+      <tr><th>Net Take-Home incl. VA (Monthly)</th><td class="num" id="netWithVA">$0</td></tr>
+    </tbody></table>
+
+    <div class="section"><div class="title">Breakdown</div>
+      <table><tbody>
+        <tr><td>Gross Pay</td><td class="num" id="gross">$0</td></tr>
+        <tr><td>Pre-tax Total (incl. 401k Traditional)</td><td class="num" id="pretax">$0</td></tr>
+        <tr><td>Wages After Pre-tax</td><td class="num" id="afterPretax">$0</td></tr>
+        <tr><td>Federal Income Tax</td><td class="num" id="fedTax">$0</td></tr>
+        <tr><td>FICA (SS + Medicare)</td><td class="num" id="fica">$0</td></tr>
+        <tr><td>State + City + School</td><td class="num" id="stateLocal">$0</td></tr>
+        <tr><td>Post-tax Deductions (Roth 401k + After-tax)</td><td class="num" id="postTaxDed">$0</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="section"><div class="title">References</div>
+      <ul class="muted">
+        <li><a href="https://dor.georgia.gov/taxes/individual-income-tax" target="_blank">Georgia DOR — Individual Income Tax</a></li>
+        <li><a href="https://dor.sc.gov/tax/individual-income-tax" target="_blank">South Carolina DOR — Individual Income Tax</a></li>
+        <li><a href="https://www.ncdor.gov/taxes-forms/individual-income-tax/tax-rate-schedules" target="_blank">North Carolina DOR — Tax Rate Schedules</a></li>
+        <li><a href="https://tax.ohio.gov/individual/get-a-form/school-district-income-tax-rates" target="_blank">Ohio DOR — School District Income Tax Rates</a></li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<script>
+// ---------- Profiles ----------
+const DEFAULT_PROFILES=[["Springfield, OH",.026,.024,.01],["Columbus, OH",.026,.025,0],["Cleveland, OH",.026,.02,0],["Atlanta, GA",.0539,0,0],["Savannah, GA",.0539,0,0],["Charleston, SC",.064,0,0],["Columbia, SC",.064,0,0],["Charlotte, NC",.045,0,0],["Raleigh, NC",.045,0,0]];
+function populateProfiles(){const sel=document.getElementById("locationProfile"),statusEl=document.getElementById("profileStatus");sel.innerHTML="";DEFAULT_PROFILES.forEach(p=>{const o=document.createElement("option");o.value=p[0];o.textContent=p[0];sel.appendChild(o)});if(statusEl)statusEl.textContent=`Profiles loaded: ${DEFAULT_PROFILES.length}`;sel.value="Springfield, OH"}
+
+// ---------- Federal (2025) ----------
+const stdDeduction={"Single":15000,"Married Filing Jointly":30000,"Head of Household":22500};
+const brackets={"Single":[[0,11925,.10],[11925,48475,.12],[48475,103350,.22],[103350,197300,.24],[197300,251300,.32],[251300,626350,.35],[626350,Infinity,.37]],
+"Married Filing Jointly":[[0,23850,.10],[23850,96950,.12],[96950,206700,.22],[206700,394600,.24],[394600,502600,.32],[502600,751600,.35],[751600,Infinity,.37]],
+"Head of Household":[[0,17000,.10],[17000,68450,.12],[68450,100500,.22],[100500,201700,.24],[201700,254100,.32],[254100,626350,.35],[626350,Infinity,.37]]};
+const SS_BASE=176100,SS_RATE=.062,MED_RATE=.0145,ADD_MED_RATE=.009,ADD_MED_THRESHOLD_SINGLE=200000,ADD_MED_THRESHOLD_MFJ=250000;
+
+// ---------- Helpers ----------
+const $=id=>document.getElementById(id),money=x=>x.toLocaleString(undefined,{style:'currency',currency:'USD',maximumFractionDigits:0}),money2=x=>x.toLocaleString(undefined,{style:'currency',currency:'USD',maximumFractionDigits:2});
+function getNumber(id){const v=parseFloat($(id).value);return isFinite(v)?v:0}
+function taxFromBrackets(taxable,status){if(taxable<=0)return 0;const tbl=brackets[status];let tax=0;for(const[lo,hi,rate]of tbl){const portion=Math.max(0,Math.min(hi,taxable)-lo);if(portion>0)tax+=portion*rate;if(taxable<=hi)break}return tax}
+
+function calc(){
+  const payType=$("payType").value,status=$("filingStatus").value,hr=getNumber("hourlyRate"),hpw=getNumber("hoursPerWeek"),wpy=Math.max(1,Math.min(52,getNumber("weeksPerYear")||52)),salary=getNumber("annualSalary");
+  const sel=$("locationProfile").value,prof=DEFAULT_PROFILES.find(p=>p[0]===sel)||DEFAULT_PROFILES[0];
+  const stateRate=$("stateRate").value!==""?parseFloat($("stateRate").value):prof[1],cityRate=$("cityRate").value!==""?parseFloat($("cityRate").value):prof[2],schoolRate=$("schoolRate").value!==""?parseFloat($("schoolRate").value):prof[3];
+  const kMode=$("kMode").value; let kTrad=getNumber("kTrad"),kRoth=getNumber("kRoth");
+  const hsa=getNumber("hsa"),fsaH=getNumber("fsaHealth"),fsaD=getNumber("fsaDep"),prem=getNumber("healthAnnual"),other=getNumber("otherPretax"),afterTax=getNumber("afterTax"),va=getNumber("vaMonthly");
+  const gross=payType==="Hourly"?hr*hpw*wpy:salary;
+  if(kMode==="Percent"){kTrad=gross*kTrad;kRoth=gross*kRoth}
+  const pretax=hsa+fsaH+fsaD+prem+other+kTrad, wages=gross-pretax>0?gross-pretax:0;
+  const std=stdDeduction[status], taxable=Math.max(0,wages-std), fed=taxFromBrackets(taxable,status);
+  const ss=SS_RATE*Math.min(wages,SS_BASE), med=MED_RATE*wages, addMed=ADD_MED_RATE*Math.max(0,wages-((status==="Married Filing Jointly")?ADD_MED_THRESHOLD_MFJ:ADD_MED_THRESHOLD_SINGLE)), fica=ss+med+addMed;
+  const state=stateRate*wages, city=cityRate*wages, school=schoolRate*wages, stateLocal=state+city+school;
+  const taxes=fed+fica+stateLocal, netBefore=wages-taxes, post=kRoth+afterTax, netAnnual=Math.max(0,netBefore-post), netMonthly=netAnnual/12, netBiweekly=netAnnual/26, netWeekly=netAnnual/52, netWithVA=netMonthly+va;
+  $("gross").textContent=money2(gross);$("pretax").textContent=money2(pretax);$("afterPretax").textContent=money2(wages);$("fedTax").textContent=money2(fed);$("fica").textContent=money2(fica);$("stateLocal").textContent=money2(stateLocal);$("postTaxDed").textContent=money2(post);
+  $("netAnnual").textContent=money(netAnnual);$("netMonthly").textContent=money2(netMonthly);$("netBiweekly").textContent=money2(netBiweekly);$("netWeekly").textContent=money2(netWeekly);$("netWithVA").textContent=money2(netWithVA)
+}
+
+function toggleHourlyFields(){ $("hourlyFields").style.display=($("payType").value==="Hourly")?"grid":"none" }
+function saveInputs(){const ids=["payType","filingStatus","hourlyRate","hoursPerWeek","weeksPerYear","annualSalary","locationProfile","stateRate","cityRate","schoolRate","kMode","kTrad","kRoth","hsa","fsaHealth","fsaDep","healthAnnual","otherPretax","afterTax","vaMonthly"];const data={};ids.forEach(id=>data[id]=$(id).value);localStorage.setItem("thpc2025",JSON.stringify(data))}
+function loadInputs(){const raw=localStorage.getItem("thpc2025");if(!raw)return;try{const d=JSON.parse(raw);Object.keys(d).forEach(k=>{$(k)&&($(k).value=d[k])})}catch{}}
+
+document.addEventListener("input",()=>{calc();saveInputs()});
+window.addEventListener("DOMContentLoaded",()=>{populateProfiles();loadInputs();toggleHourlyFields();calc();$("payType").addEventListener("change",()=>{toggleHourlyFields();calc()});$("resetBtn").addEventListener("click",()=>{localStorage.removeItem("thpc2025");location.reload()});$("saveBtn").addEventListener("click",()=>{saveInputs();alert("Saved locally ✅")})});
+</script>
+</body></html>
